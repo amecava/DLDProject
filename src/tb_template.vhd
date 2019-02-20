@@ -9,7 +9,7 @@ use std.textio.all;
 library vunit_lib;
 context vunit_lib.vunit_context;
 
-entity tb_generated is
+entity tb_template is
   generic (
     runner_cfg : string;
     output_path : string;
@@ -18,7 +18,7 @@ entity tb_generated is
     message : string);
 end entity;
 
-architecture a of tb_generated is
+architecture tbtemplate of tb_template is
 begin
   main : process
     procedure dump_generics is

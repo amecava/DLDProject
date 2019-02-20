@@ -52,18 +52,18 @@ def generate_tests(obj, signs, data_widths):
                        post_check=make_post_check(data_width, sign))
 
 
-test_path = join(dirname(__file__), "template")
+test_path = join(dirname(__file__), "src")
 
 ui = VUnit.from_argv()
 lib = ui.add_library("lib")
 lib.add_source_files(join(test_path, "*.vhd"))
 
-tb_generated = lib.test_bench("tb_template")
+tb_template = lib.test_bench("tb_template")
 
 # Just set a generic for all configurations within the test bench
-tb_generated.set_generic("message", "set-for-entity")
+tb_template.set_generic("message", "set-for-entity")
 
-for test in tb_generated.get_tests():
+for test in tb_template.get_tests():
     if test.name == "Test 2":
         # Test 2 should only be run with signed width of 16
         generate_tests(test, [True], [16])
@@ -71,8 +71,5 @@ for test in tb_generated.get_tests():
     else:
         # Run all other tests with signed/unsigned and data width in range [1,5]
         generate_tests(test, [False, True], range(1, 5))
-
-for test in tb_generated.get_tests():
-    print(generate_tests)
 
 # ui.main()
