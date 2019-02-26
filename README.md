@@ -5,3 +5,4 @@ One Paragraph of project description goes here.
 ## Authors
 
 * **Amedeo Cavallo**
+* **Edoardo Carrer**
