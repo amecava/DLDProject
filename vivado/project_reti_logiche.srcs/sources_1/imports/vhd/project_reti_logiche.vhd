@@ -48,46 +48,29 @@ signal Pbitmask, Nbitmask: std_logic_vector(7 downto 0);
 signal Px, Nx, Py, Ny, Pc, Nc: std_logic_vector(7 downto 0);
 
 signal Pcounter, Ncounter: std_logic_vector(4 downto 0);
-signal Pmindist, Nmindist: std_logic_vector(8 downto 0); -- SUM <= ('0' & NUM1) + ('0' & NUM2);
-
-signal tb_done, ram_en, ram_we: std_logic;
+signal Pmindist, Nmindist, distance: std_logic_vector(8 downto 0);
 
 begin
     -- Registers / Outputs
     register_output: process (i_clk, i_rst)
     begin         
-        if i_clk'event and i_clk = '1' then -- Active high
+        if i_clk'event and i_clk = '0' then -- Active low
             if i_rst = '1' then
                 -- Reset all registers
                 Pstate <= RESET;
                 Pbitmask <= (others => '1');
                 Px <= (others => '0'); Py <= (others => '0'); Pc <= (others => '0');
-                Pcounter <= (2 => '0', 3 => '0', others => '1');
-                Pmindist <= (others => '1');
-                
-                -- Reset all outputs
-                o_address <= (others => '0');
-                o_done <= '0';
-                o_en <= '0';
-                o_we <= '0';
-                o_data <= (others => '0');
-                
+                Pcounter <= "10010";
+                Pmindist <= (others => '1');     
             else 
                 -- Update all registers
                 Pstate <= Nstate;
                 Pbitmask <= Nbitmask;
                 Px <= Nx; Py <= Ny; Pc <= Nc;
                 Pcounter <= Ncounter;
-                Pmindist <= Nmindist;
-                
-                -- Update all outputs
-                o_address(4 downto 0) <= Pcounter;
-                o_done <= tb_done;
-                o_en <= ram_en;
-                o_we <= ram_we;
-                o_data <= Pbitmask;       
+                Pmindist <= Nmindist;     
             end if;
-        end if;      
+        end if;     
     end process;
     
     -- Delta (next state) / Lambda (output) functions
@@ -100,21 +83,65 @@ begin
         Ncounter <= Pcounter;
         Nmindist <= Pmindist;
         
-        tb_done <= '0';
-        ram_en <= '0';
-        ram_we <= '0';
+        o_address <= (others => '0');
+        o_done <= '0';
+        o_en <= '0';
+        o_we <= '0';
+        o_data <= (others => '0');
 
         case Pstate is
             when RESET => -- When current state is RESET
-                --
+                if i_start = '1' then
+                    Nstate <= BITMASK;
+                    
+                    o_en <= '1';
+                    -- o_address(4 to 0) <= (others => '0');  
+                end if;
             when BITMASK => -- When current state is BITMASK
-                --
+                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
+                
+                Nbitmask <= i_data;
+                
+                if i_start = '1' then
+                    Nstate <= Y;
+                    
+                    o_en <= '1';
+                    o_address(4 downto 0) <= Pcounter;
+                end if;
             
             when Y => -- When current state is X
-                --
+                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
+                
+                if Pcounter = "10001" then
+                    Ny <= i_data;
+                else
+                    Nc <= i_data;
+                end if;
+                
+                if i_start = '1' then
+                    Nstate <= X;
+                    
+                    o_en <= '1';
+                    o_address(4 downto 0) <= Pcounter;
+                end if;
                 
             when X => -- When current state is Y
-                --
+                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
+                
+                if Pcounter = "10000" then
+                    Nx <= i_data;
+                else
+                    -- Distance
+                    distance <= std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc)));
+                   
+                end if;
+                
+                if i_start = '1' then
+                    Nstate <= Y;
+                    
+                    o_en <= '1';
+                    o_address(4 downto 0) <= Pcounter;
+                end if;
             
             when DONE => -- When current state is DONE
                 --
