@@ -139,9 +139,9 @@ begin
                             Nstate <= Y;
                             
                             o_en <= '1';
-                            o_address(4 downto 0) <= Ncounter;
+                            o_address(4 downto 0) <= std_logic_vector(unsigned(Pcounter) - 1);
                             
-                            Ncounter <= std_logic_vector(unsigned(Ncounter) - 1);
+                            Ncounter <=  std_logic_vector(unsigned(Pcounter) - 2);
                         end if;   
                     end if;
                 end if;
