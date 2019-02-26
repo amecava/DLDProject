@@ -39,7 +39,7 @@ architecture projecttb of project_tb is
     
     type ram_type is array (65535 downto 0) of std_logic_vector(7 downto 0);
     
-    signal RAM: ram_type := (0 => std_logic_vector(to_unsigned( 185 , 8)),
+    signal RAM: ram_type := (0 => std_logic_vector(to_unsigned( 16 , 8)),
                              1 => std_logic_vector(to_unsigned( 75 , 8)),
                              2 => std_logic_vector(to_unsigned( 32 , 8)),
                              3 => std_logic_vector(to_unsigned( 111 , 8)),
@@ -124,7 +124,7 @@ architecture projecttb of project_tb is
         wait until tb_done = '0';
     
         -- Maschera di output = 00010001
-        assert RAM(19) = std_logic_vector(to_unsigned( 17 , 8)) report "TEST FALLITO" severity failure;
+        assert RAM(19) = std_logic_vector(to_unsigned( 16 , 8)) report "TEST FALLITO" severity failure;
      
         assert false report "Simulation Ended!, TEST PASSATO" severity failure;
     end process test;

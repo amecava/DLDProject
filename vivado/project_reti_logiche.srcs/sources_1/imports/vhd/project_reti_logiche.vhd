@@ -98,9 +98,8 @@ begin
                     -- o_address(4 to 0) <= (others => '0');  
                 end if;
             when BITMASK => -- When current state is BITMASK
-                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
-                
                 Nbitmask <= i_data;
+                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
                 
                 if i_start = '1' then
                     Nstate <= Y;
@@ -109,68 +108,60 @@ begin
                     o_address(4 downto 0) <= Pcounter;
                 end if;
             
-            when Y => -- When current state is X
+            when Y => -- When current state is Y
                 Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
                 
                 if i_start = '1' then
-                    if Pcounter = "10001" then
-                        Ny <= i_data;
-                        
-                        Nstate <= X;
-                            
-                        o_en <= '1';
-                        o_address(4 downto 0) <= Pcounter;
-                    elsif Pcounter = "00000" then
-                        Nstate <= DONE;
-                        
-                        o_address(4 downto 0) <= "10011";
-                        o_en <= '1';
-                        o_we <= '1';
-                        o_data <= Pbitmask;       
-                    else
-                        Nc <= i_data;
-                        
-                        if Pbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) = '1' then
-                            Nstate <= X;
-                            
-                            o_en <= '1';
-                            o_address(4 downto 0) <= Pcounter;
-                        else
-                            Nstate <= Y;
-                            
-                            o_en <= '1';
-                            o_address(4 downto 0) <= std_logic_vector(unsigned(Pcounter) - 1);
-                            
-                            Ncounter <=  std_logic_vector(unsigned(Pcounter) - 2);
-                        end if;   
-                    end if;
-                end if;
-                
-            when X => -- When current state is Y
-                if Pcounter > "00000" then
-                    Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
-                end if;
-                
-                if Pcounter = "10000" then
-                    Nx <= i_data;
-                else
-                    -- Distance                    
-                    if Pmindist > std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
-                        Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= (others => '0');
-                        
-                        Nmindist <= std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc)));
-                        
-                    elsif Pmindist < std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
-                        Nbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) <= '0';
-                    end if;
-                        
-                end if;
-                
-                if i_start = '1' then
-                    Nstate <= Y;
+                    Nstate <= X;
                     
                     o_en <= '1';
                     o_address(4 downto 0) <= Pcounter;
+                    
+                    if Pcounter = "10001" then
+                        Ny <= i_data;
+                    elsif Pcounter = "11111" then
+                        Nstate <= DONE;
+                            
+                        o_address(4 downto 0) <= "10011";
+                        o_we <= '1';
+                        o_data <= Pbitmask;      
+                    elsif Pbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) = '0' then
+                        Nstate <= Y;
+                        Ncounter <=  std_logic_vector(unsigned(Pcounter) - 2);
+                        
+                        o_address(4 downto 0) <= std_logic_vector(unsigned(Pcounter) - 1);
+                    else
+                        Nc <= i_data;
+                    end if;
+                end if;
+                
+            when X => -- When current state is X
+                Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
+                
+                if i_start = '1' then
+                    Nstate <= Y;
+                
+                    o_en <= '1';
+                    o_address(4 downto 0) <= Pcounter;
+                
+                    if Pcounter = "10000" then
+                        Nx <= i_data;
+                    elsif Pcounter = "00000" then
+                        Nstate <= DONE;
+                            
+                        o_address(4 downto 0) <= "10011";
+                        o_we <= '1';
+                        o_data <= Pbitmask;
+                    else
+                        if Pmindist > std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
+                            Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= (others => '0');
+                            
+                            Nmindist <= std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc)));      
+                        elsif Pmindist < std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
+                            Nbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) <= '0';
+                        end if;
+                            
+                    end if;
                 end if;
             
             when DONE => -- When current state is DONE
