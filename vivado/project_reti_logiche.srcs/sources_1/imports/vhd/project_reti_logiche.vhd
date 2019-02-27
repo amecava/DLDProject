@@ -40,21 +40,19 @@ end project_reti_logiche;
 
 
 architecture prl of project_reti_logiche is
-type state_type is (RESET, BITMASK, Y, X, DONE, SWAIT);
+type state_type is (RESET, BITMASK, Y, X, DONE);
 
 signal Pstate, Nstate: state_type;
-
 signal Pbitmask, Nbitmask: std_logic_vector(7 downto 0);
 signal Px, Nx, Py, Ny, Pc, Nc: std_logic_vector(7 downto 0);
-
 signal Pcounter, Ncounter: std_logic_vector(4 downto 0);
-signal Pmindist, Nmindist, distance: std_logic_vector(8 downto 0);
+signal Pmindist, Nmindist: std_logic_vector(8 downto 0);
 
 begin
-    -- Registers / Outputs
-    register_output: process (i_clk, i_rst)
+    -- Registers process
+    registers: process (i_clk, i_rst)
     begin         
-        if i_clk'event and i_clk = '0' then -- Active low
+        if i_clk'event and i_clk = '1' then -- Active high
             if i_rst = '1' then
                 -- Reset all registers
                 Pstate <= RESET;
@@ -74,7 +72,9 @@ begin
     end process;
     
     -- Delta (next state) / Lambda (output) functions
-    delta_lambda: process (Pstate, Pbitmask, Px, Py, Pcounter, Pmindist, i_start)
+    delta_lambda: process (Pstate, Pbitmask, Px, Py, Pc, Pcounter, Pmindist, i_start, i_data)
+        -- Variables
+        variable distance: std_logic_vector(8 downto 0);
     begin
         -- Set defaults 
         Nstate <= Pstate;
@@ -94,92 +94,91 @@ begin
                 if i_start = '1' then
                     Nstate <= BITMASK;
                     
+                    -- o_address(4 to 0) <= (others => '0') 
                     o_en <= '1';
-                    -- o_address(4 to 0) <= (others => '0');  
                 end if;
+                  
             when BITMASK => -- When current state is BITMASK
+                Nstate <= Y;
                 Nbitmask <= i_data;
                 Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
                 
-                if i_start = '1' then
-                    Nstate <= Y;
-                    
-                    o_en <= '1';
-                    o_address(4 downto 0) <= Pcounter;
-                end if;
+                o_address(4 downto 0) <= Pcounter;
+                o_en <= '1';
+                
+                -- Bitmask (0* or power of 2) to RAM
+                if (i_data and i_data - 1) = "00000" then
+                    Nstate <= DONE;
+                        
+                    o_address(4 downto 0) <= "10011";
+                    o_we <= '1';
+                    o_data <= i_data;
+                end if;                
             
             when Y => -- When current state is Y
+                Nstate <= X;
                 Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
+                                
+                o_address(4 downto 0) <= Pcounter;
+                o_en <= '1';           
                 
-                if i_start = '1' then
-                    Nstate <= X;
+                -- Y coordinate of the point
+                if Pcounter = "10001" then
+                    Ny <= i_data;
                     
-                    o_en <= '1';
-                    o_address(4 downto 0) <= Pcounter;
-                    
-                    if Pcounter = "10001" then
-                        Ny <= i_data;
-                    elsif Pcounter = "11111" then
-                        Nstate <= DONE;
-                            
-                        o_address(4 downto 0) <= "10011";
-                        o_we <= '1';
-                        o_data <= Pbitmask;      
-                    elsif Pbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) = '0' then
-                        Nstate <= Y;
-                        Ncounter <=  std_logic_vector(unsigned(Pcounter) - 2);
+                -- Bitmask to RAM
+                elsif Pcounter = "11111" then
+                    Nstate <= DONE;
                         
-                        o_address(4 downto 0) <= std_logic_vector(unsigned(Pcounter) - 1);
-                    else
-                        Nc <= i_data;
-                    end if;
+                    o_address(4 downto 0) <= "10011";
+                    o_we <= '1';
+                    o_data <= Pbitmask;
+                    
+                -- Centroide not active      
+                elsif Pbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) = '0' then
+                    Nstate <= Y;
+                    Ncounter <=  std_logic_vector(unsigned(Pcounter) - 2);
+                    
+                    o_address(4 downto 0) <= std_logic_vector(unsigned(Pcounter) - 1);
+                    
+                -- Centroide active
+                else
+                    Nc <= i_data;
                 end if;
                 
             when X => -- When current state is X
+                -- Calculate Manhattan distance
+                distance := std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc)));
+                
+                Nstate <= Y;
                 Ncounter <= std_logic_vector(unsigned(Pcounter) - 1);
                 
-                if i_start = '1' then
-                    Nstate <= Y;
+                o_address(4 downto 0) <= Pcounter;
+                o_en <= '1';                
                 
-                    o_en <= '1';
-                    o_address(4 downto 0) <= Pcounter;
-                
-                    if Pcounter = "10000" then
-                        Nx <= i_data;
-                    elsif Pcounter = "00000" then
-                        Nstate <= DONE;
-                            
-                        o_address(4 downto 0) <= "10011";
-                        o_we <= '1';
-                        o_data <= Pbitmask;
-                    else
-                        if Pmindist > std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
-                            Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= (others => '0');
-                            
-                            Nmindist <= std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc)));      
-                        elsif Pmindist < std_logic_vector(abs(signed('0' & Px) - signed('0' & i_data)) + abs(signed('0' & Py) - signed('0' & Pc))) then
-                            Nbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) <= '0';
-                        end if;
-                            
-                    end if;
+                -- X coordinate of the point
+                if Pcounter = "10000" then
+                    Nx <= i_data;    
+                    
+                -- Update bitmask
+                elsif distance < Pmindist then
+                    Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= (others => '0');
+                    Nmindist <= distance;      
+                elsif distance > Pmindist then
+                    Nbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) <= '0';
                 end if;
-            
+                
             when DONE => -- When current state is DONE
                 if i_start = '1' then
-                    Nstate <= SWAIT;
-                    
-                    o_done <= '1';
-                 end if;
-            when SWAIT => -- When current state is SWAIT
-                if i_start = '1' then
-                    Nstate <= SWAIT;
+                    Nstate <= DONE;
                     
                     o_done <= '1';
                 else
                     Nstate <= RESET;
-                end if;       
+                end if;
+                      
             when others =>
-                -- Exception code
+                -- Exception code               
         end case;   
     end process;
     
