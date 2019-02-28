@@ -4,7 +4,7 @@
 -- 
 -- Create Date:
 -- Design Name: 
--- Module Name: project_reti_logiche
+-- Module Name: project_reti_logiche 
 -- Project Name: 
 -- Target Devices: 
 -- Tool Versions: 
