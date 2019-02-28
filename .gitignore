@@ -1,3 +1,6 @@
 .DS_Store
 vivado/
 xsim.dir/
+*.log
+*.jou
+*.pb
