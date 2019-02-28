@@ -1,3 +1,5 @@
+# EXECUTE SETTINGS64.BAT BEFORE RUNNING THIS SCRIPT
+
 import os
 import sys
 import random
