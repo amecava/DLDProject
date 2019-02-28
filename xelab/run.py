@@ -86,7 +86,10 @@ def main():
         sys.stdout.flush()
 
         # Run behavioural simulation
-        bash = subprocess.getoutput("xvhdl temporary.vhd & " +
+        bash = subprocess.getoutput(r"CALL C:\Xilinx\Vivado\2018.3\.settings64-Vivado.bat & " +
+                                    r"CALL C:\Xilinx\DocNav\.settings64-DocNav.bat & " +
+                                    r"CALL C:\Xilinx\SDK\2018.3\.settings64-SDK_Core_Tools.bat & " +
+                                    "xvhdl temporary.vhd & " +
                                     "xvhdl project_reti_logiche.vhd & " +
                                     "xelab project_tb & " +
                                     "xsim work.project_tb -runall"
