@@ -1,5 +1,0 @@
-Vivado Simulator 2018.3
-Time resolution is 1 ps
-Failure: Simulation Ended!, TEST PASSATO
-Time: 2250 ns  Iteration: 2  Process: /project_tb/test  File: C:/Users/Amedeo Cavallo/Desktop/digitallogicdesign/vivado/project_reti_logiche.srcs/sources_1/imports/vhd/testbench.vhd
-$finish called at time : 2250 ns : File "C:/Users/Amedeo Cavallo/Desktop/digitallogicdesign/vivado/project_reti_logiche.srcs/sources_1/imports/vhd/testbench.vhd" Line 129
