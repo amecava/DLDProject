@@ -78,6 +78,9 @@ def generate_input(mode):
     return d
 
 def main():
+    #parser = argparse.ArgumentParser(description="Run behavioural simulation on template testbench")
+    #parser.add_argument('-n', action="store", dest="n", type=int)
+
     # Testbench template file
     filein = open("tb_template.vhd")
     template = Template(filein.read())
