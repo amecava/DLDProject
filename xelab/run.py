@@ -47,15 +47,17 @@ def compute_result(value):
 def generate_input(mode):
     value = []
 
-    if mode == 0:
-        # Input bitmask and centroids
+    # Input mode selection
+    if mode == 's':
+        # Stdin bitmask and centroids
         value.append(int(input("Bitmask: ")))
         for i in range(1, 9):
             x, y = input("Centroid " + str(i) + " X Y: ").split()
             value.append([int(x), int(y)])
         x, y = input("Point X Y: ").split()
         value.append([int(x), int(y)])
-    else:
+
+    elif mode == 'r':
         # Random bitmask and random centroids
         value.append(random.randint(0, 255))
         for _ in range(1, 10):
@@ -78,26 +80,29 @@ def generate_input(mode):
     return d
 
 def main():
-    #parser = argparse.ArgumentParser(description="Run behavioural simulation on template testbench")
-    #parser.add_argument('-n', action="store", dest="n", type=int)
+    # Argument parser
+    parser = argparse.ArgumentParser(description="Run behavioural simulation on template testbench.")
+    parser.add_argument("-n", action="store", dest="n", type=int, default=1, help="NUMBER of simulations [default = 1].")
+    parser.add_argument('-m', choices=['s', 'r'], default='r', help="input mode selection: s for STDIN / r for RANDOM [default = r].")
+    args = parser.parse_args()
 
     # Testbench template file
     filein = open("tb_template.vhd")
     template = Template(filein.read())
     filein.close()
 
-    for i in range(0, int(sys.argv[1])):
+    for i in range(0, args.n):
         # Temporary testbench file
         fileout = open("temporary.vhd", 'w')
 
+        print("\nSimulation ID: " + str(i + 1))
+
         # Generate input and create testbench
-        value = generate_input(1)
+        value = generate_input(args.m)
         fileout.write(template.substitute(value))
         fileout.close()
 
-        print("\nSimulation ID: " + str(i + 1))
         print("    Expected return value: " + str(bin(value.get('RESULT'))))
-
         sys.stdout.write("    Running simulation ")
         sys.stdout.flush()
 
@@ -117,7 +122,8 @@ def main():
             print("=> Simulation passed")
         elif "failed" in bash:
             print("\n    RAM address 0b00010011: " + str(bin(int(re.search(r"failed(\d+)", bash).group(1)))))
-
+            
+            # GUI waveform debugging
             if input("=> Simulation failed, run GUI waveform debugging? [y] ").lower() == 'y':
                 bash = subprocess.getoutput(settings64Vivado +
                                     settings64DocNav +
