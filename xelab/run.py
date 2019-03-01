@@ -1,8 +1,15 @@
 import os
+import re
 import sys
 import random
+import argparse
 import subprocess
 from string import Template
+
+# Set settings64 paths for Vivado setup
+settings64Vivado = r"CALL C:\Xilinx\Vivado\2018.3\.settings64-Vivado.bat & "
+settings64DocNav = r"CALL C:\Xilinx\DocNav\.settings64-DocNav.bat & "
+settings64SDKCoreTools = r"CALL C:\Xilinx\SDK\2018.3\.settings64-SDK_Core_Tools.bat & "
 
 def to_binary(num):
     # Convert integer to binary array
@@ -76,59 +83,47 @@ def main():
     template = Template(filein.read())
     filein.close()
 
-    if len(sys.argv) == 2 and sys.argv[1] == "-input":
+    for i in range(0, int(sys.argv[1])):
         # Temporary testbench file
         fileout = open("temporary.vhd", 'w')
-        fileout.write(template.substitute(generate_input(0)))
+
+        # Generate input and create testbench
+        value = generate_input(1)
+        fileout.write(template.substitute(value))
         fileout.close()
 
-        sys.stdout.write("Running simulation ")
+        print("\nSimulation ID: " + str(i + 1))
+        print("    Expected return value: " + str(bin(value.get('RESULT'))))
+
+        sys.stdout.write("    Running simulation ")
         sys.stdout.flush()
 
         # Run behavioural simulation
-        bash = subprocess.getoutput(r"CALL C:\Xilinx\Vivado\2018.3\.settings64-Vivado.bat & " +
-                                    r"CALL C:\Xilinx\DocNav\.settings64-DocNav.bat & " +
-                                    r"CALL C:\Xilinx\SDK\2018.3\.settings64-SDK_Core_Tools.bat & " +
+        bash = subprocess.getoutput(settings64Vivado +
+                                    settings64DocNav +
+                                    settings64SDKCoreTools +
                                     "xvhdl temporary.vhd & " +
                                     "xvhdl project_reti_logiche.vhd & " +
                                     "xelab project_tb & " +
                                     "xsim work.project_tb -runall"
-                                )
-
+                                    )
+        
         # Parse bash output for result
         if "passed" in bash:
+            print("\n    RAM address 0b00010011: " + str(bin(int(re.search(r"passed(\d+)", bash).group(1)))))
             print("=> Simulation passed")
         elif "failed" in bash:
-            print("=> Simulation failed")
-        
-    elif len(sys.argv) == 3 and sys.argv[1] == "-random":
-        if int(sys.argv[2]) > 0:
-            for i in range(0, int(sys.argv[2])):
-                # Temporary testbench file
-                fileout = open("temporary.vhd", 'w')
-                fileout.write(template.substitute(generate_input(1)))
-                fileout.close()
+            print("\n    RAM address 0b00010011: " + str(bin(int(re.search(r"failed(\d+)", bash).group(1)))))
 
-                sys.stdout.write("Running simulation " + str(i + 1) + " ")
-                sys.stdout.flush()
-
-                # Run behavioural simulation
-                bash = subprocess.getoutput(r"CALL C:\Xilinx\Vivado\2018.3\.settings64-Vivado.bat & " +
-                                            r"CALL C:\Xilinx\DocNav\.settings64-DocNav.bat & " +
-                                            r"CALL C:\Xilinx\SDK\2018.3\.settings64-SDK_Core_Tools.bat & " +
-                                            "xvhdl temporary.vhd & " +
-                                            "xvhdl project_reti_logiche.vhd & " +
-                                            "xelab project_tb & " +
-                                            "xsim work.project_tb -runall"
-                                        )
-
-                # Parse bash output for result
-                if "passed" in bash:
-                    print("=> Simulation passed")
-                elif "failed" in bash:
-                    print("=> Simulation failed")
-    else:
-        print("Usage: python " + sys.argv[0] + " [-input] | [-random n]")
+            if input("=> Simulation failed, run GUI waveform debugging? [y] ").lower() == 'y':
+                bash = subprocess.getoutput(settings64Vivado +
+                                    settings64DocNav +
+                                    settings64SDKCoreTools +
+                                    "xvhdl temporary.vhd & " +
+                                    "xvhdl project_reti_logiche.vhd & " +
+                                    "xelab project_tb -debug all & " +
+                                    "xsim work.project_tb -gui"
+                                    )
 
     # Remove temporary testbench file
     if os.path.exists("temporary.vhd"):

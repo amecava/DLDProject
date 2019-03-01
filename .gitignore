@@ -3,4 +3,5 @@ vivado/
 xsim.dir/
 *.log
 *.jou
+*.wdb
 *.pb

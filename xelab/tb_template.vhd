@@ -123,8 +123,8 @@ architecture projecttb of project_tb is
         tb_start <= '0';
         wait until tb_done = '0';
     
-        assert RAM(19) = std_logic_vector(to_unsigned( $RESULT , 8)) report "failed" severity failure;
+        assert RAM(19) = std_logic_vector(to_unsigned( $RESULT , 8)) report "failed" & integer'image(to_integer(unsigned(RAM(19))))severity failure;
      
-        assert false report "Simulation Ended!, passed" severity failure;
+        assert false report "passed" & integer'image(to_integer(unsigned(RAM(19)))) severity failure;
     end process test;
 end projecttb; 
