@@ -63,11 +63,11 @@ def compute_result(tb_values):
   
     return to_integer(bitmask)
 
-def generate_input(mode):
+def generate_input(stdin):
     tb_values = []
 
     # Testbench populate mode
-    if mode == 's':
+    if stdin:
         # Stdin bitmask and centroids
         tb_values.append(int(input("Bitmask: ")))
         for i in range(1, 9):
@@ -76,7 +76,7 @@ def generate_input(mode):
         x, y = input("Point X Y: ").split()
         tb_values.append([int(x), int(y)])
 
-    elif mode == 'r':
+    else:
         # Random bitmask and random centroids
         tb_values.append(random.randint(0, 255))
         for _ in range(1, 10):
@@ -113,10 +113,10 @@ def vivado_settings_path():
 
 def main():
     # Argument parser
-    parser = argparse.ArgumentParser(description="Run behavioural simulation on template testbench.")
-    parser.add_argument("filename", action="store", help="project vhd file to perform simulation.")
+    parser = argparse.ArgumentParser(description="Run behavioural simulation on a template testbench populated with random values.")
+    parser.add_argument("filename", action="store", help="vhd project file to perform simulation with.")
     parser.add_argument("-n", action="store", dest="n", type=int, default=1, help="number of simulations [default = 1].")
-    parser.add_argument("-m", choices=['s', 'r'], default='r', help="testbench populate mode: s STDIN | r RANDOM [default = r].")
+    parser.add_argument("-s", "--stdin", action="store_true", dest="s", default=False, help="populate testbench with user defined values")
     args = parser.parse_args()
 
     # Find settings64 paths
@@ -148,7 +148,7 @@ def main():
         print("\nSimulation ID: " + str(i + 1))
 
         # Generate input and create testbench
-        tb_values = generate_input(args.m)
+        tb_values = generate_input(args.s)
         fileout.write(template.substitute(tb_values))
         fileout.close()
 
