@@ -15,7 +15,7 @@ def to_integer(bin_array):
     num = 0
     for bit in bin_array:
         num = (num << 1) | bit
-    
+
     return num
 
 def query_yes_no(question, default="yes"):
@@ -55,12 +55,12 @@ def compute_result(tb_values):
             if distance < mindist:
                 for j in range(0, i):
                     bitmask[j] = 0
-                
+
                 mindist = distance
-                  
+
             elif distance > mindist:
                 bitmask[i] = 0
-  
+
     return to_integer(bitmask)
 
 def generate_input(stdin):
@@ -83,7 +83,7 @@ def generate_input(stdin):
             tb_values.append([random.randint(0, 255), random.randint(0, 255)])
 
     # Create template dictionary
-    d = {"BITMASK": tb_values[0], 
+    d = {"BITMASK": tb_values[0],
          "XC1": tb_values[1][0], "YC1": tb_values[1][1],
          "XC2": tb_values[2][0], "YC2": tb_values[2][1],
          "XC3": tb_values[3][0], "YC3": tb_values[3][1],
@@ -127,7 +127,7 @@ def main():
     print("\n=> " + settings_path[0])
     print("=> " + settings_path[1])
     print("=> " + settings_path[2])
-    
+
     # Create settings64 calls
     settings_call = ("CALL " + settings_path[0] + " & " +
                      "CALL " + settings_path[1] + " & " +
@@ -162,8 +162,8 @@ def main():
                                     "xvhdl " + args.filename + " & " +
                                     "xelab project_tb & " +
                                     "xsim work.project_tb -runall"
-                                )
-        
+                                   )
+
         # Parse bash output for result
         if "passed" in bash:
             print("\n    RAM address 0b00010011: " + str(bin(int(re.search(r"passed(\d+)", bash).group(1)))))
@@ -180,13 +180,13 @@ def main():
                                             "xvhdl project_reti_logiche.vhd & " +
                                             "xelab project_tb -debug all & " +
                                             "xsim work.project_tb -gui"
-                                        )
+                                           )
 
     # Number of passed simulations
-    print("\nNumber of passed simulations: " + 
-          str(passed_simulations) + '/' + str(args.n) + 
+    print("\nNumber of passed simulations: " +
+          str(passed_simulations) + '/' + str(args.n) +
           " (" + str((passed_simulations * 100) / args.n) + "%)"
-        )
+         )
 
     # Remove temporary testbench file
     if os.path.exists("temporary.vhd"):
