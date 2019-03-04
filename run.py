@@ -78,10 +78,14 @@ def verilog_glbl_search():
         for name in files:
             if name == "glbl.v" and r"data\verilog\src\glbl.v" in os.path.abspath(os.path.join(root, name)):
                 copyfile(os.path.abspath(os.path.join(root, name)), "lib/glbl.v")
-    
-    print("\n=> File found and copyed to working directory.\n")
 
-    return
+                # Return success code if file found
+                print("\n=> File found and copyed to working directory.")
+                return 0
+
+    # Return error code if file not found
+    print("\n=> File not found.")
+    return -1
 
 def settings64_search():
     # Search for settings64 bat files
@@ -89,18 +93,43 @@ def settings64_search():
     sys.stdout.write(r"Searching settings64 bat files in C:\ ")
     sys.stdout.flush()
 
+    found = 0
+
     # C:\ drive walk
     for root, _, files in os.walk(r"C:\\"):
         for name in files:
-            if name == ".settings64-Vivado.bat" and not os.path.exists("lib/.settings64-Vivado.bat"):
-                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-Vivado.bat")
-            if name == ".settings64-DocNav.bat" and not os.path.exists("lib/.settings64-DocNav.bat"):
-                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-DocNav.bat")
-            if name == ".settings64-SDK_Core_Tools.bat" and not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
-                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
+            if name == ".settings64-Vivado.bat":
+                # Copy if doesn't already exists
+                if not os.path.exists("lib/.settings64-Vivado.bat"):
+                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-Vivado.bat")
+
+                found += 1
+            if name == ".settings64-DocNav.bat":
+                # Copy if doesn't already exists
+                if not os.path.exists("lib/.settings64-DocNav.bat"):
+                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-DocNav.bat")
+
+                found += 1
+            if name == ".settings64-SDK_Core_Tools.bat":
+                # Copy if doesn't already exists
+                if not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
+                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
+
+                found += 1 
+            
+            if found == 3:
+                break
+        
+        if found == 3:
+            break
     
-    print("\n=> Files found and copyed to working directory.\n")
-    return
+    # Return success or error code
+    if found == 3:
+        print("\n=> Files found and copyed to working directory.")
+    else:
+        print("\n=> Files not found.")
+
+    return found
 
 def vivado_synthesis(args):
     # Create tcl file to run vivado
@@ -113,13 +142,24 @@ def vivado_synthesis(args):
     bash = subprocess.getoutput(settings_call() +
                                 "vivado -mode batch -source run.tcl"
                                )
-    if "ERROR" in bash:
-        print("\n=> Synthesis failed.\n")
-        print(bash)
+
+    print("")
+
+    # Printh synthesis warnings and errors
+    for line in bash.split("\n"):
+        if "WARNING" in line:
+            print(line)
         
+        elif "ERROR" in line:
+            print(line)
+    
+    # Return error code if synthesis failed
+    if "ERROR" in bash:
+        print("=> Synthesis failed.\n")
         return -1
 
-    print("\n=> Synthesis completed.")
+    # Return success code if synthesis succeeded
+    print("=> Synthesis completed.")
     return 0
 
 def settings_call():
@@ -128,21 +168,19 @@ def settings_call():
             "CALL ../lib/.settings64-DocNav.bat & " +
             "CALL ../lib/.settings64-SDK_Core_Tools.bat & "
            )
-    
 
 def create_tcl_file(args):
     # Create tcl file to run vivado
     tclfile = open("run.tcl", 'w')
 
     # Set synthetis tcl commands
-    tcl_commands = ("read_vhdl ../../vhd/" + args.filename + "\n" +
-                    "read_xdc ../../vhd/constraints.xdc\n\n" +
+    tcl_commands = ("read_vhdl ../" + args.filepath + "\n" +
+                    "read_xdc ../vhd/constraints.xdc\n\n" +
                     "synth_design -top project_reti_logiche -part xc7a200tfbg484-1\n" +
                     "write_checkpoint -force post_synth\n\n"
                    )
 
     tclfile.write(tcl_commands)
-
     tclfile.write("open_checkpoint post_synth.dcp\n")
 
     # Set functional specific commands
@@ -171,7 +209,7 @@ def simulation_commands(args):
     # Behavioural simulation commands
     if args.synth is None:
         return ("xvhdl project_tb.vhd & " +
-                "xvhdl ../../vhd/" + args.filename + " & " +
+                "xvhdl ../" + args.filepath + " & " +
                 "xelab " + debug + " project_tb & " +
                 "xsim work.project_tb " + gui
             )
@@ -200,9 +238,9 @@ def main():
                                                   "testbench populated with random values."
                                                  )
                                     )
-    parser.add_argument("filename", 
+    parser.add_argument("filepath", 
                         action="store", 
-                        help="vhd project file to perform simulation with (it has to be in the vhd root directory)."
+                        help="vhd project file path to perform simulation with [vhd/filename.vhd]."
                        )
     parser.add_argument("-n", 
                         action="store", 
@@ -226,21 +264,29 @@ def main():
     # Lib directory, no glbl.v and settings64
     if not os.path.exists("lib"):
         os.makedirs("lib")
-        settings64_search()
+
+        # Return if settings64 not found
+        if settings64_search() != 3:
+            return
 
         if args.synth == "timing":
-            verilog_glbl_search()
-
+            # Return if glbl.v not found
+            if verilog_glbl_search() == -1:
+                return
     else:
-        # No verilog glbl.v
-        if args.synth == "timing" and not os.path.exists("lib/glbl.v"):
-            verilog_glbl_search()
-
         # No settings64 bat files
         if (not os.path.exists("lib/.settings64-Vivado.bat") or 
             not os.path.exists("lib/.settings64-DocNav.bat") or 
             not os.path.exists("lib/.settings64-SDK_Core_Tools.bat")):
-            settings64_search()
+            # Return if settings64 not found
+            if settings64_search() != 3:
+                return
+        
+        # No verilog glbl.v
+        if args.synth == "timing" and not os.path.exists("lib/glbl.v"):
+            # Return if glbl.v not found
+            if verilog_glbl_search() == -1:
+                return
     
     # Create log directory
     if not os.path.exists("log"):
@@ -248,7 +294,7 @@ def main():
     os.chdir("log")
         
     # Testbench template file
-    filein = open("../../vhd/template_tb.vhd")
+    filein = open("../vhd/template_tb.vhd")
     template = Template(filein.read())
     filein.close()
 
