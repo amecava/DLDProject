@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 import random
 import argparse
 import subprocess
@@ -68,7 +69,7 @@ def generate_input():
 
 def verilog_glbl_search():
     # Search for data\verilog\src\glbl.v
-    print("\nVerilog glbl.v not found.")
+    print("Verilog glbl.v not found.")
     sys.stdout.write(r"Searching verilog glbl.v in C:\ ")
     sys.stdout.flush()
 
@@ -78,13 +79,13 @@ def verilog_glbl_search():
             if name == "glbl.v" and r"data\verilog\src\glbl.v" in os.path.abspath(os.path.join(root, name)):
                 copyfile(os.path.abspath(os.path.join(root, name)), "lib/glbl.v")
     
-    print("\n=> File found and copyed to working directory.")
+    print("\n=> File found and copyed to working directory.\n")
 
     return
 
 def settings64_search():
     # Search for settings64 bat files
-    print("\nSettings64 bat files not found.")
+    print("Settings64 bat files not found.")
     sys.stdout.write(r"Searching settings64 bat files in C:\ ")
     sys.stdout.flush()
 
@@ -98,24 +99,28 @@ def settings64_search():
             if name == ".settings64-SDK_Core_Tools.bat" and not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
                 copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
     
-    print("\n=> Files found and copyed to working directory.")
+    print("\n=> Files found and copyed to working directory.\n")
     return
 
 def vivado_synthesis(args):
     # Create tcl file to run vivado
     create_tcl_file(args)
 
-    print("")
     sys.stdout.write(r"Post-synthesis simulation selected, running synthesis ")
     sys.stdout.flush()
 
     # Run synthesis with vivado batch mode
-    _ = subprocess.getoutput(settings_call() +
-                             "vivado -mode batch -source run.tcl"
-                            )
+    bash = subprocess.getoutput(settings_call() +
+                                "vivado -mode batch -source run.tcl"
+                               )
+    if "ERROR" in bash:
+        print("\n=> Synthesis failed.\n")
+        print(bash)
+        
+        return -1
 
     print("\n=> Synthesis completed.")
-    return
+    return 0
 
 def settings_call():
     # Set settings64 batch calls
@@ -142,12 +147,12 @@ def create_tcl_file(args):
 
     # Set functional specific commands
     if args.synth == "functional":
-        tclfile.write("write_vhdl -mode funcsim functional_simulation.vhd\n")
+        tclfile.write("write_vhdl -mode funcsim -force functional_simulation.vhd\n")
     
     # Set timing specific commands
     elif args.synth == "timing":
-        tclfile.write("write_verilog -mode timesim -sdf_anno true timing_simulation.v\n")
-        tclfile.write("write_sdf timing_simulation.sdf\n")
+        tclfile.write("write_verilog -mode timesim -sdf_anno true -force timing_simulation.v\n")
+        tclfile.write("write_sdf -force timing_simulation.sdf\n")
     
     tclfile.close()
 
@@ -221,11 +226,14 @@ def main():
     # Lib directory, no glbl.v and settings64
     if not os.path.exists("lib"):
         os.makedirs("lib")
-        verilog_glbl_search()
         settings64_search()
+
+        if args.synth == "timing":
+            verilog_glbl_search()
+
     else:
         # No verilog glbl.v
-        if not os.path.exists("lib/glbl.v"):
+        if args.synth == "timing" and not os.path.exists("lib/glbl.v"):
             verilog_glbl_search()
 
         # No settings64 bat files
@@ -249,7 +257,8 @@ def main():
     # If functional or timing post-synthesis simulation
     if args.synth is not None:
         # Run synthesis
-        vivado_synthesis(args)
+        if vivado_synthesis(args) == -1:
+            return
 
     for i in range(0, args.n):
         # Temporary testbench file
@@ -270,23 +279,31 @@ def main():
             sys.stdout.write("    Running " + args.synth + " simulation ")
         sys.stdout.flush()
 
+        start = time.time()
+
         # Run simulation
         bash = subprocess.getoutput(settings_call() +
                                     simulation_commands(args)
                                    )
 
+        end = time.time()
+
+        print("\n    Ended in " + str(end - start) + " seconds")
+
         # Parse bash output for result
         if not args.gui:
-            if "passed" in bash:
-                print("\n    RAM address 0b00010011: " + 
-                      str(bin(int(re.search(r"passed(\d+)", bash).group(1)))))
-                print("=> Simulation passed")
+            if "passed" in bash:     
+                print("    RAM address 0b00010011: " + 
+                      str(bin(int(re.search(r"passed(\d+)", bash).group(1))))
+                      )
+                print("=> Simulation passed.")
 
                 passed_simulations += 1
             elif "failed" in bash:
                 print("\n    RAM address 0b00010011: " + 
-                      str(bin(int(re.search(r"failed(\d+)", bash).group(1)))))
-                print("=> Simulation failed")
+                      str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
+                     )
+                print("=> Simulation failed.")
         else:
             print("")
 
