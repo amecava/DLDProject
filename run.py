@@ -17,7 +17,7 @@ def to_integer(bin_array):
     num = 0
     for bit in bin_array:
         num = (num << 1) | bit
-    
+
     return num
 
 def compute_result(tb_values):
@@ -28,19 +28,19 @@ def compute_result(tb_values):
     # Calculate Manhattan distance
     for i in range(0, 8):
         if bitmask[i] == 1:
-            distance = (abs(tb_values[9][0] - tb_values[8 - i][0]) + 
+            distance = (abs(tb_values[9][0] - tb_values[8 - i][0]) +
                         abs(tb_values[9][1] - tb_values[8 - i][1])
                        )
 
             if distance < mindist:
                 for j in range(0, i):
                     bitmask[j] = 0
-                
+
                 mindist = distance
-                  
+
             elif distance > mindist:
                 bitmask[i] = 0
-  
+
     return to_integer(bitmask)
 
 def generate_input():
@@ -52,7 +52,7 @@ def generate_input():
         tb_values.append([random.randint(0, 255), random.randint(0, 255)])
 
     # Create template dictionary
-    d = {"BITMASK": tb_values[0], 
+    d = {"BITMASK": tb_values[0],
          "XC1": tb_values[1][0], "YC1": tb_values[1][1],
          "XC2": tb_values[2][0], "YC2": tb_values[2][1],
          "XC3": tb_values[3][0], "YC3": tb_values[3][1],
@@ -115,14 +115,14 @@ def settings64_search():
                 if not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
                     copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
 
-                found += 1 
-            
+                found += 1
+
             if found == 3:
                 break
-        
+
         if found == 3:
             break
-    
+
     # Return success or error code
     if found == 3:
         print("\n=> Files found and copyed to working directory.")
@@ -149,10 +149,10 @@ def vivado_synthesis(args):
     for line in bash.split("\n"):
         if "WARNING" in line:
             print(line)
-        
+
         elif "ERROR" in line:
             print(line)
-    
+
     # Return error code if synthesis failed
     if "ERROR" in bash:
         print("=> Synthesis failed.\n")
@@ -186,12 +186,12 @@ def create_tcl_file(args):
     # Set functional specific commands
     if args.synth == "functional":
         tclfile.write("write_vhdl -mode funcsim -force functional_simulation.vhd\n")
-    
+
     # Set timing specific commands
     elif args.synth == "timing":
         tclfile.write("write_verilog -mode timesim -sdf_anno true -force timing_simulation.v\n")
         tclfile.write("write_sdf -force timing_simulation.sdf\n")
-    
+
     tclfile.close()
 
     return
@@ -205,14 +205,6 @@ def simulation_commands(args):
     else:
         gui = "-runall"
         debug = ""
-    
-    # Behavioural simulation commands
-    if args.synth is None:
-        return ("xvhdl project_tb.vhd & " +
-                "xvhdl ../" + args.filepath + " & " +
-                "xelab " + debug + " project_tb & " +
-                "xsim work.project_tb " + gui
-            )
 
     # Post-synthesis functional simulation commands
     if args.synth == "functional":
@@ -220,7 +212,7 @@ def simulation_commands(args):
                 "xvhdl functional_simulation.vhd & "
                 "xelab " + debug + " project_tb & " +
                 "xsim work.project_tb " + gui
-            )
+               )
 
     # Post-synthesis timing simulation commands
     if args.synth == "timing":
@@ -229,7 +221,14 @@ def simulation_commands(args):
                 "xvlog ../lib/glbl.v & " +
                 "xelab " + debug + " -L simprims_ver -L unisims_ver project_tb glbl & " +
                 "xsim work.project_tb#work.glbl " + gui
-            )
+               )
+
+    # Behavioural simulation commands
+    return ("xvhdl project_tb.vhd & " +
+            "xvhdl ../" + args.filepath + " & " +
+            "xelab " + debug + " project_tb & " +
+            "xsim work.project_tb " + gui
+           )
 
 def main():
     # Argument parser
@@ -238,24 +237,24 @@ def main():
                                                   "testbench populated with random values."
                                                  )
                                     )
-    parser.add_argument("filepath", 
-                        action="store", 
+    parser.add_argument("filepath",
+                        action="store",
                         help="vhd project file path to perform simulation with [vhd/filename.vhd]."
                        )
-    parser.add_argument("-n", 
-                        action="store", 
-                        type=int, 
-                        default=1, 
+    parser.add_argument("-n",
+                        action="store",
+                        type=int,
+                        default=1,
                         help="number of simulations [default = 1]."
                        )
-    parser.add_argument('--synth', 
-                        default=None, 
-                        choices=["functional", "timing"], 
+    parser.add_argument('--synth',
+                        default=None,
+                        choices=["functional", "timing"],
                         help="post-synthesis functional or timing simulation [default = behavioural]"
                        )
-    parser.add_argument("--gui", 
-                        action="store_true", 
-                        default=False, 
+    parser.add_argument("--gui",
+                        action="store_true",
+                        default=False,
                         help="enable GUI waveform simulation."
                        )
 
@@ -265,34 +264,26 @@ def main():
     if not os.path.exists("lib"):
         os.makedirs("lib")
 
-        # Return if settings64 not found
-        if settings64_search() != 3:
+        if (settings64_search() != 3 or (args.synth == "timing" and verilog_glbl_search() == -1)):
             return
-
-        if args.synth == "timing":
-            # Return if glbl.v not found
-            if verilog_glbl_search() == -1:
-                return
     else:
         # No settings64 bat files
-        if (not os.path.exists("lib/.settings64-Vivado.bat") or 
-            not os.path.exists("lib/.settings64-DocNav.bat") or 
-            not os.path.exists("lib/.settings64-SDK_Core_Tools.bat")):
-            # Return if settings64 not found
+        if (not os.path.exists("lib/.settings64-Vivado.bat") or
+                not os.path.exists("lib/.settings64-DocNav.bat") or
+                not os.path.exists("lib/.settings64-SDK_Core_Tools.bat")):
             if settings64_search() != 3:
                 return
-        
+
         # No verilog glbl.v
         if args.synth == "timing" and not os.path.exists("lib/glbl.v"):
-            # Return if glbl.v not found
             if verilog_glbl_search() == -1:
                 return
-    
+
     # Create log directory
     if not os.path.exists("log"):
         os.makedirs("log")
     os.chdir("log")
-        
+
     # Testbench template file
     filein = open("../vhd/template_tb.vhd")
     template = Template(filein.read())
@@ -319,10 +310,7 @@ def main():
 
         # Print expected return value
         print("    Expected return value: " + str(bin(tb_values.get("RESULT"))))
-        if args.synth is None:
-            sys.stdout.write("    Running simulation ")
-        else:
-            sys.stdout.write("    Running " + args.synth + " simulation ")
+        sys.stdout.write("    Running simulation ")
         sys.stdout.flush()
 
         start = time.time()
@@ -338,15 +326,15 @@ def main():
 
         # Parse bash output for result
         if not args.gui:
-            if "passed" in bash:     
-                print("    RAM address 0b00010011: " + 
+            if "passed" in bash:
+                print("    RAM address 0b00010011: " +
                       str(bin(int(re.search(r"passed(\d+)", bash).group(1))))
-                      )
+                     )
                 print("=> Simulation passed.")
 
                 passed_simulations += 1
             elif "failed" in bash:
-                print("\n    RAM address 0b00010011: " + 
+                print("\n    RAM address 0b00010011: " +
                       str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
                      )
                 print("=> Simulation failed.")
@@ -355,10 +343,10 @@ def main():
 
     # Number of passed simulations
     if not args.gui:
-        print("\nNumber of passed simulations: " + 
-            str(passed_simulations) + '/' + str(args.n) + 
-            " (" + str((passed_simulations * 100) / args.n) + "%)"
-            )
+        print("\nNumber of passed simulations: " +
+              str(passed_simulations) + '/' + str(args.n) +
+              " (" + str((passed_simulations * 100) / args.n) + "%)"
+             )
 
 if __name__ == "__main__":
     main()
