@@ -1,7 +1,4 @@
 .DS_Store
 vivado/
-xsim.dir/
-*.log
-*.jou
-*.wdb
-*.pb
+log/
+lib/
