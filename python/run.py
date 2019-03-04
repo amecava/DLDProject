@@ -4,6 +4,7 @@ import sys
 import random
 import argparse
 import subprocess
+from shutil import copyfile
 from string import Template
 
 def to_binary_array(num):
@@ -15,32 +16,8 @@ def to_integer(bin_array):
     num = 0
     for bit in bin_array:
         num = (num << 1) | bit
-
+    
     return num
-
-def query_yes_no(question, default="yes"):
-    # Valid answers to question
-    valid = {"yes": True, 'y': True,
-             "no": False, 'n': False
-            }
-
-    # Set prompt with default
-    if default is None:
-        prompt = " [y/n] "
-    elif default == "yes":
-        prompt = " [Y/n] "
-    elif default == "no":
-        prompt = " [y/N] "
-
-    # Select choice
-    while True:
-        choice = input(question + prompt).lower()
-        if default is not None and choice == '':
-            return valid[default]
-        elif choice in valid:
-            return valid[choice]
-        else:
-            print("Respond with yes or no (or 'y' or 'n').")
 
 def compute_result(tb_values):
     # Input bitmask and set mindist
@@ -55,35 +32,24 @@ def compute_result(tb_values):
             if distance < mindist:
                 for j in range(0, i):
                     bitmask[j] = 0
-
+                
                 mindist = distance
-
+                  
             elif distance > mindist:
                 bitmask[i] = 0
-
+  
     return to_integer(bitmask)
 
-def generate_input(stdin):
+def generate_input():
     tb_values = []
 
-    # Testbench populate mode
-    if stdin:
-        # Stdin bitmask and centroids
-        tb_values.append(int(input("Bitmask: ")))
-        for i in range(1, 9):
-            x, y = input("Centroid " + str(i) + " X Y: ").split()
-            tb_values.append([int(x), int(y)])
-        x, y = input("Point X Y: ").split()
-        tb_values.append([int(x), int(y)])
-
-    else:
-        # Random bitmask and random centroids
-        tb_values.append(random.randint(0, 255))
-        for _ in range(1, 10):
-            tb_values.append([random.randint(0, 255), random.randint(0, 255)])
+    # Random bitmask and random centroids
+    tb_values.append(random.randint(0, 255))
+    for _ in range(1, 10):
+        tb_values.append([random.randint(0, 255), random.randint(0, 255)])
 
     # Create template dictionary
-    d = {"BITMASK": tb_values[0],
+    d = {"BITMASK": tb_values[0], 
          "XC1": tb_values[1][0], "YC1": tb_values[1][1],
          "XC2": tb_values[2][0], "YC2": tb_values[2][1],
          "XC3": tb_values[3][0], "YC3": tb_values[3][1],
@@ -98,70 +64,160 @@ def generate_input(stdin):
 
     return d
 
-def vivado_settings_path():
-    # Search settings64 bat files
+def verilog_glbl_search():
+    print("\nVerilog glbl.v not found.")
+    sys.stdout.write(r"Searching verilog glbl.v in C:\ ")
+    sys.stdout.flush()
+
     for root, _, files in os.walk(r"C:\\"):
         for name in files:
-            if name == ".settings64-Vivado.bat":
-                settings64Vivado = os.path.abspath(os.path.join(root, name))
-            if name == ".settings64-DocNav.bat":
-                settings64DocNav = os.path.abspath(os.path.join(root, name))
-            if name == ".settings64-SDK_Core_Tools.bat":
-                settings64SDKCoreTools = os.path.abspath(os.path.join(root, name))
+            if name == "glbl.v" and r"data\verilog\src\glbl.v" in os.path.abspath(os.path.join(root, name)):
+                copyfile(os.path.abspath(os.path.join(root, name)), "lib/glbl.v")
+    
+    print("\n=> File found and copyed to working directory.")
+    return
 
-    return settings64Vivado, settings64DocNav, settings64SDKCoreTools
+def settings64_search():
+    print("\nSettings64 bat files not found.")
+    sys.stdout.write(r"Searching settings64 bat files in C:\ ")
+    sys.stdout.flush()
+    
+    for root, _, files in os.walk(r"C:\\"):
+        for name in files:
+            if name == ".settings64-Vivado.bat" and not os.path.exists(".settings64-Vivado.bat"):
+                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-Vivado.bat")
+            if name == ".settings64-DocNav.bat" and not os.path.exists(".settings64-DocNav.bat"):
+                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-DocNav.bat")
+            if name == ".settings64-SDK_Core_Tools.bat" and not os.path.exists(".settings64-SDK_Core_Tools.batt"):
+                copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
+    
+    print("\n=> Files found and copyed to working directory.")
+    return
+
+def vivado_synthesis(args):
+    # Create tcl file to run vivado
+    create_tcl_file(args)
+
+    sys.stdout.write(r"Post-synthesis simulation selected, running synthesis ")
+    sys.stdout.flush()
+
+    # Run synthesis with vivado batch mode
+    _ = subprocess.getoutput(settings_call() +
+                             "vivado -mode batch -source run.tcl"
+                            )
+
+    print("\n=> Synthesis completed.")
+    return
+
+def settings_call():
+    return ("CALL ../lib/.settings64-Vivado.bat & " +
+            "CALL ../lib/.settings64-DocNav.bat & " +
+            "CALL ../lib/.settings64-SDK_Core_Tools.bat & "
+           )
+    
+
+def create_tcl_file(args):
+    tclfile = open("run.tcl", 'w')
+
+    tcl_commands = ("read_vhdl ../../vhd/" + args.filename + "\n" +
+                    "read_xdc ../../vhd/constraints.xdc\n\n" +
+                    "synth_design -top project_reti_logiche -part xc7a200tfbg484-1\n" +
+                    "write_checkpoint -force post_synth\n\n"
+                   )
+
+    tclfile.write(tcl_commands)
+
+    tclfile.write("open_checkpoint post_synth.dcp\n")
+
+    if args.synth == "functional":
+        tclfile.write("write_vhdl -mode funcsim functional_simulation.vhd\n")
+    elif args.synth == "timing":
+        tclfile.write("write_verilog -mode timesim -sdf_anno true timing_simulation.v\n")
+        tclfile.write("write_sdf timing_simulation.sdf\n")
+    
+    tclfile.close()
+
+    return
+
+def simulation_commands(args):
+    if args.synth is None:
+        return ("xvhdl project_tb.vhd & " +
+                "xvhdl ../../vhd/" + args.filename + " & " +
+                "xelab project_tb & " +
+                "xsim work.project_tb -runall"
+               )
+
+    if args.synth == "functional":
+        return ("xvhdl project_tb.vhd & " +
+                "xvhdl functional_simulation.vhd & "
+                "xelab project_tb & " +
+                "xsim work.project_tb -runall"
+               )
+    
+    if args.synth == "timing":
+        return ("xvhdl project_tb.vhd & " +
+                "xvlog timing_simulation.v & " +
+                "xvlog ../lib/glbl.v & " +
+                "xelab -transport_int_delays -pulse_r 0 -pulse_int_r 0 project_tb & " +
+                "xsim work.project_tb -runall"
+               )
 
 def main():
     # Argument parser
-    parser = argparse.ArgumentParser(description="Run behavioural simulation on a template testbench populated with random values.")
-    parser.add_argument("filename", action="store", help="vhd project file to perform simulation with.")
-    parser.add_argument("-n", action="store", dest="n", type=int, default=1, help="number of simulations [default = 1].")
-    parser.add_argument("-s", "--stdin", action="store_true", dest="s", default=False, help="populate testbench with user defined values")
+    parser = argparse.ArgumentParser(description="Run behavioural, post-synthesis functional or post-synthesis timing simulation on a template testbench populated with random values.")
+    parser.add_argument("filename", action="store", help="src folder vhd project file to perform simulation with.")
+    parser.add_argument("-n", action="store", type=int, default=1, help="number of simulations [default = 1].")
+    parser.add_argument('--synth', default=None, choices=['functional', 'timing'], help="post-synthesis functional or timing simulation [default = behavioural]")
     args = parser.parse_args()
 
-    # Find settings64 paths
-    settings_path = ['', '', '']
-    sys.stdout.write(r"Searching settings64 bat files in C:\ ")
-    sys.stdout.flush()
-    settings_path[0], settings_path[1], settings_path[2] = vivado_settings_path()
-    print("\n=> " + settings_path[0])
-    print("=> " + settings_path[1])
-    print("=> " + settings_path[2])
+    if not os.path.exists("lib"):
+        os.makedirs("lib")
+        verilog_glbl_search()
+        settings64_search()
+    else:
+        if not os.path.exists("lib/glbl.v"):
+            verilog_glbl_search()
 
-    # Create settings64 calls
-    settings_call = ("CALL " + settings_path[0] + " & " +
-                     "CALL " + settings_path[1] + " & " +
-                     "CALL " + settings_path[2] + " & "
-                    )
-
+        if not os.path.exists("lib/.settings64-Vivado.bat") or not os.path.exists("lib/.settings64-DocNav.bat") or not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
+            settings64_search()
+    
+    if not os.path.exists("log"):
+        os.makedirs("log")
+        
     # Testbench template file
-    filein = open("tb_template.vhd")
+    filein = open("../vhd/template_tb.vhd")
     template = Template(filein.read())
     filein.close()
 
+    os.chdir("log")
     passed_simulations = 0
+
+    # If functional or timing post-synthesis simulation
+    if args.synth is not None:
+        # Run synthesis
+        vivado_synthesis(args)
 
     for i in range(0, args.n):
         # Temporary testbench file
-        fileout = open("temporary.vhd", 'w')
+        fileout = open("project_tb.vhd", 'w')
 
         print("\nSimulation ID: " + str(i + 1))
 
         # Generate input and create testbench
-        tb_values = generate_input(args.s)
+        tb_values = generate_input()
         fileout.write(template.substitute(tb_values))
         fileout.close()
 
         print("    Expected return value: " + str(bin(tb_values.get("RESULT"))))
-        sys.stdout.write("    Running simulation ")
+        if args.synth is None:
+            sys.stdout.write("    Running simulation ")
+        else:
+            sys.stdout.write("    Running " + args.synth + " simulation ")
         sys.stdout.flush()
 
-        # Run behavioural simulation
-        bash = subprocess.getoutput(settings_call +
-                                    "xvhdl temporary.vhd & " +
-                                    "xvhdl " + args.filename + " & " +
-                                    "xelab project_tb & " +
-                                    "xsim work.project_tb -runall"
+        # Run simulation
+        bash = subprocess.getoutput(settings_call() +
+                                    simulation_commands(args)
                                    )
 
         # Parse bash output for result
@@ -173,24 +229,12 @@ def main():
         elif "failed" in bash:
             print("\n    RAM address 0b00010011: " + str(bin(int(re.search(r"failed(\d+)", bash).group(1)))))
             print("=> Simulation failed")
-            # GUI waveform debugging
-            if query_yes_no("Run GUI waveform debugging?"):
-                bash = subprocess.getoutput(settings_call +
-                                            "xvhdl temporary.vhd & " +
-                                            "xvhdl project_reti_logiche.vhd & " +
-                                            "xelab project_tb -debug all & " +
-                                            "xsim work.project_tb -gui"
-                                           )
 
     # Number of passed simulations
-    print("\nNumber of passed simulations: " +
-          str(passed_simulations) + '/' + str(args.n) +
+    print("\nNumber of passed simulations: " + 
+          str(passed_simulations) + '/' + str(args.n) + 
           " (" + str((passed_simulations * 100) / args.n) + "%)"
-         )
-
-    # Remove temporary testbench file
-    if os.path.exists("temporary.vhd"):
-        os.remove("temporary.vhd")
+        )
 
 if __name__ == "__main__":
     main()
