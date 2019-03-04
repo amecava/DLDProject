@@ -202,7 +202,7 @@ def main():
                                     )
     parser.add_argument("filename", 
                         action="store", 
-                        help="vhd project file to perform simulation with (it has to be in the vhd directory)."
+                        help="vhd project file to perform simulation with (it has to be in the vhd root directory)."
                        )
     parser.add_argument("-n", 
                         action="store", 
