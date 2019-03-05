@@ -231,8 +231,8 @@ def simulation_commands(args):
            )
 
 def run_end():
-     os.chdir("..")
-     shutil.rmtree("log")
+    os.chdir("..")
+    shutil.rmtree("log")
 
 def main():
     # Argument parser
@@ -298,7 +298,7 @@ def main():
     # If functional or timing post-synthesis simulation
     if args.synth is not None:
         # Run synthesis
-        if vivado_synthesis(args) == -1:            
+        if vivado_synthesis(args) == -1:
             return run_end()
 
     for i in range(0, args.n):
