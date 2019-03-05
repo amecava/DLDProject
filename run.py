@@ -322,10 +322,10 @@ def main():
 
         end = time.time()
 
-        print("\n    Ended in " + str(end - start) + " seconds")
-
         # Parse bash output for result
         if not args.gui:
+            print("\n    Ended in " + str(end - start) + " seconds")
+
             if "passed" in bash:
                 print("    RAM address 0b00010011: " +
                       str(bin(int(re.search(r"passed(\d+)", bash).group(1))))

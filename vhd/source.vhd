@@ -79,7 +79,7 @@ begin
             end if;
         end process change_state;
         
-    execute: process(i_clk, i_start, i_rst, i_data, state, next_state, BITMASK_IN_old, BITMASK_OUT_old, X_old, Y_old, pX_old, MinDist_old, onehot_old, counter_old)
+    execute: process(i_clk, i_start, i_rst, i_data, state, next_state, BITMASK_IN_old, BITMASK_OUT_old, X_old, Y_old, pX_old, MinDist_old, onehot_old, counter_old, done)
         variable distP: std_logic_vector(7 downto 0);
         begin
             X <= X_old;
@@ -122,18 +122,19 @@ begin
                 when C =>
                     Y <= i_data;
                     if i_start='1' AND i_rst='0' then
+                        --o_address <= "0000000000010011";
                         next_state <= D;
                     end if;
                 when D =>
                     if i_start='1' AND i_rst='0' then
-                        BITMASK_temp:=BITMASK_IN_old AND onehot_old;
-                        if NOT (BITMASK_temp="00000000") then
+                        if NOT ((BITMASK_IN_old AND onehot_old)="00000000") then
                             o_address <= counter_old;
                             counter <= std_logic_vector(unsigned(counter_old) +1);
                             next_state <= E;
                         else 
                             onehot <= std_logic_vector(shift_left(signed(onehot_old),1));
                             counter <= std_logic_vector(unsigned(counter_old) +2);
+                            o_address <= std_logic_vector(unsigned(counter_old) +2);
                             next_state <= D;
                         end if;
                     end if;
@@ -155,6 +156,7 @@ begin
                         end if;
                         onehot <= std_logic_vector(shift_left(unsigned(onehot_old),1));
                         -- HO TOLTO DA QUI LA SCRITTURA DELLA BITMASK IN USCITA--
+                        --o_address <= "0000000000010011";
                         if onehot_old = "10000000" then 
                             next_state <= G;
                         else 
@@ -164,7 +166,7 @@ begin
                 when G =>
                     -- SCRIVO IN USCITA SOLAMENTE QUI --
                     o_address <= "0000000000010011";
-                    o_data <= BITMASK_OUT;
+                    o_data <= BITMASK_OUT_old;
                     o_en <= '1';
                     o_we <= '1';
                     -- QUESTO SERVE A MANTENERE DONE A 1 --
