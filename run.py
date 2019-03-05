@@ -2,10 +2,10 @@ import os
 import re
 import sys
 import time
+import shutil
 import random
 import argparse
 import subprocess
-from shutil import copyfile
 from string import Template
 
 def to_binary_array(num):
@@ -77,7 +77,7 @@ def verilog_glbl_search():
     for root, _, files in os.walk(r"C:\\"):
         for name in files:
             if name == "glbl.v" and r"data\verilog\src\glbl.v" in os.path.abspath(os.path.join(root, name)):
-                copyfile(os.path.abspath(os.path.join(root, name)), "lib/glbl.v")
+                shutil.copyfile(os.path.abspath(os.path.join(root, name)), "lib/glbl.v")
 
                 # Return success code if file found
                 print("\n=> File found and copyed to working directory.")
@@ -101,19 +101,19 @@ def settings64_search():
             if name == ".settings64-Vivado.bat":
                 # Copy if doesn't already exists
                 if not os.path.exists("lib/.settings64-Vivado.bat"):
-                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-Vivado.bat")
+                    shutil.copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-Vivado.bat")
 
                 found += 1
             if name == ".settings64-DocNav.bat":
                 # Copy if doesn't already exists
                 if not os.path.exists("lib/.settings64-DocNav.bat"):
-                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-DocNav.bat")
+                    shutil.copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-DocNav.bat")
 
                 found += 1
             if name == ".settings64-SDK_Core_Tools.bat":
                 # Copy if doesn't already exists
                 if not os.path.exists("lib/.settings64-SDK_Core_Tools.bat"):
-                    copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
+                    shutil.copyfile(os.path.abspath(os.path.join(root, name)), "lib/.settings64-SDK_Core_Tools.bat")
 
                 found += 1
 
@@ -148,10 +148,10 @@ def vivado_synthesis(args):
     # Printh synthesis warnings and errors
     for line in bash.split("\n"):
         if "WARNING" in line:
-            print(line)
+            print("    " + line)
 
         elif "ERROR" in line:
-            print(line)
+            print("    " + line)
 
     # Return error code if synthesis failed
     if "ERROR" in bash:
@@ -230,6 +230,10 @@ def simulation_commands(args):
             "xsim work.project_tb " + gui
            )
 
+def run_end():
+     os.chdir("..")
+     shutil.rmtree("log")
+
 def main():
     # Argument parser
     parser = argparse.ArgumentParser(description=("Run behavioural, post-synthesis functional " +
@@ -265,19 +269,19 @@ def main():
         os.makedirs("lib")
 
         if (settings64_search() != 3 or (args.synth == "timing" and verilog_glbl_search() == -1)):
-            return
+            return run_end()
     else:
         # No settings64 bat files
         if (not os.path.exists("lib/.settings64-Vivado.bat") or
                 not os.path.exists("lib/.settings64-DocNav.bat") or
                 not os.path.exists("lib/.settings64-SDK_Core_Tools.bat")):
             if settings64_search() != 3:
-                return
+                return run_end()
 
         # No verilog glbl.v
         if args.synth == "timing" and not os.path.exists("lib/glbl.v"):
             if verilog_glbl_search() == -1:
-                return
+                return run_end()
 
     # Create log directory
     if not os.path.exists("log"):
@@ -294,8 +298,8 @@ def main():
     # If functional or timing post-synthesis simulation
     if args.synth is not None:
         # Run synthesis
-        if vivado_synthesis(args) == -1:
-            return
+        if vivado_synthesis(args) == -1:            
+            return run_end()
 
     for i in range(0, args.n):
         # Temporary testbench file
@@ -334,7 +338,7 @@ def main():
 
                 passed_simulations += 1
             elif "failed" in bash:
-                print("\n    RAM address 0b00010011: " +
+                print("    RAM address 0b00010011: " +
                       str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
                      )
                 print("=> Simulation failed.")
@@ -347,6 +351,8 @@ def main():
               str(passed_simulations) + '/' + str(args.n) +
               " (" + str((passed_simulations * 100) / args.n) + "%)"
              )
+
+    return run_end()
 
 if __name__ == "__main__":
     main()
