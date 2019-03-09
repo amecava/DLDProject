@@ -172,6 +172,8 @@ begin
                 if i_start = '1' then
                     Nstate <= DONE;
                     
+                    -- Remove driven by constant 0 warning
+                    o_address <= (others => '1');
                     o_done <= '1';
                 else
                     Nstate <= RESET;
