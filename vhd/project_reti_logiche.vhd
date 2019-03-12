@@ -96,6 +96,8 @@ begin
                     
                     -- o_address(4 to 0) <= (others => '0') 
                     o_en <= '1';
+                else
+                    Nstate <= RESET;
                 end if;
                   
             when BITMASK => -- When current state is BITMASK
