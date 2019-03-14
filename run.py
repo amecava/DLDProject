@@ -337,10 +337,16 @@ def main():
                 print("=> Simulation passed.")
 
                 passed_simulations += 1
-            elif "failed" in bash:
-                print("    RAM address 0b00010011: " +
-                      str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
-                     )
+            else:
+                for line in bash.split("\n"):
+                    if "ERROR" in line:
+                        print("    " + line)
+
+                if "failed" in bash:
+                    print("    RAM address 0b00010011: " +
+                        str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
+                        )
+
                 print("=> Simulation failed.")
         else:
             print("")
