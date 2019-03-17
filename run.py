@@ -1,7 +1,6 @@
 import os
 import re
 import sys
-import time
 import shutil
 import random
 import argparse
@@ -317,19 +316,13 @@ def main():
         sys.stdout.write("    Running simulation ")
         sys.stdout.flush()
 
-        start = time.time()
-
         # Run simulation
         bash = subprocess.getoutput(settings_call() +
                                     simulation_commands(args)
                                    )
 
-        end = time.time()
-
         # Parse bash output for result
         if not args.gui:
-            print("\n    Ended in " + str(end - start) + " seconds")
-
             if "passed" in bash:
                 print("    RAM address 0b00010011: " +
                       str(bin(int(re.search(r"passed(\d+)", bash).group(1))))
@@ -344,8 +337,8 @@ def main():
 
                 if "failed" in bash:
                     print("    RAM address 0b00010011: " +
-                        str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
-                        )
+                          str(bin(int(re.search(r"failed(\d+)", bash).group(1))))
+                         )
 
                 print("=> Simulation failed.")
         else:
