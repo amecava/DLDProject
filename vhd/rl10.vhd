@@ -137,17 +137,18 @@ begin
                 -- chiedi x punto
                 o_en <= '1';
                 o_address <= "0000000000010001"; -- 17
-                counter_next <= "0000000000010001";
+                counter_next <= "0000000000010000"; --16
 
                 next_state <= anmask_s;
 
             when anmask_s =>
-                            if(counter = "0000000000010001") -- salva x punto
+                
+                if(counter = "0000000000010000") -- salva x punto
                 then p_x_next <= i_data;
-                    counter_next <= counter - '1'; 
-                    o_en <= '1';         -- chiedi y di un centroide
-                    o_address <= counter;
-                    next_state <= askXC_s;
+                    --counter_next <= counter - '1'; 
+                    --o_en <= '1';         -- chiedi y di un centroide
+                    --o_address <= counter;
+                    --next_state <= askXC_s;
                  end if;
 
                 -- controlla se hai finito
@@ -218,3 +219,4 @@ begin
     --              '0' when others;
                   
 end my_project_reti_logiche;
+
