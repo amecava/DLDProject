@@ -1,23 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:
--- Design Name: 
--- Module Name: project_reti_logiche 
--- Project Name: 
--- Target Devices: 
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -47,6 +27,8 @@ signal Pbitmask, Nbitmask: std_logic_vector(7 downto 0);
 signal Px, Nx, Py, Ny, Pc, Nc: std_logic_vector(7 downto 0);
 signal Pcounter, Ncounter: std_logic_vector(4 downto 0);
 signal Pmindist, Nmindist: std_logic_vector(8 downto 0);
+
+constant zero: std_logic_vector(8 downto 0) := (others => '0');
 
 begin
     -- Registers process
@@ -164,7 +146,8 @@ begin
                     
                 -- Update bitmask
                 elsif distance < Pmindist then
-                    Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= (others => '0');
+                    Nbitmask(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1) <= zero(7 downto to_integer(shift_right(unsigned(Pcounter), 1)) + 1);
+
                     Nmindist <= distance;      
                 elsif distance > Pmindist then
                     Nbitmask(to_integer(shift_right(unsigned(Pcounter), 1))) <= '0';
