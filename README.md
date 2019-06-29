@@ -9,15 +9,16 @@ on a template testbench populated with random values.
 run.py [-h] [-n N] [--synth {functional,timing}] [--gui] filepath
 ```
 
-Positional arguments:
-  filepath              vhd project file path to perform simulation with[vhd/filename.vhd].
+| Positional arguments | description |
+| ------ | ------ |
+| filepath | vhd project file path to perform simulation with[vhd/filename.vhd]. |
 
-Optional arguments:
-  -h, --help            show this help message and exit
-  -n N                  number of simulations [default = 1].
-  --synth {functional,timing}
-                        post-synthesis functional or timing simulation[default = behavioural]
-  --gui                 enable GUI waveform simulation.
+| Optional arguments | description |
+| ------ | ------ |
+| -h, --help | show usage message and exit. |
+| -n N | number of simulations [default = 1]. |
+| --synth {functional,timing} | post-synthesis functional or timing simulation [default = behavioural] |
+| --gui | enable GUI waveform simulation. |
 
 ## Authors
 
