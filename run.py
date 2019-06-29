@@ -231,7 +231,9 @@ def simulation_commands(args):
 
 def run_end():
     os.chdir("..")
-    shutil.rmtree("log")
+
+    if os.path.exists("log"):
+        shutil.rmtree("log")
 
 def main():
     # Argument parser
