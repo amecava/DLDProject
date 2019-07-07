@@ -11,14 +11,14 @@ run.py [-h] [-n N] [--synth {functional,timing}] [--gui] filepath
 
 | Positional arguments | description |
 | ------ | ------ |
-| filepath | vhd project file path to perform simulation with[vhd/filename.vhd]. |
+| filepath | VHD project file path to perform simulation with [ex. vhd/filename.vhd]. |
 
 | Optional arguments | description |
 | ------ | ------ |
-| -h, --help | show usage message and exit. |
-| -n N | number of simulations [default = 1]. |
-| --synth {functional,timing} | post-synthesis functional or timing simulation [default = behavioural] |
-| --gui | enable GUI waveform simulation. |
+| -h, --help | Show usage message and exit. |
+| -n N | Number of simulations [default = 1]. |
+| --synth {functional,timing} | Post-synthesis functional or timing simulation [default = behavioural] |
+| --gui | Enable GUI waveform simulation. |
 
 ## Authors
 
