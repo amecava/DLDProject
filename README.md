@@ -9,11 +9,11 @@ on a template testbench populated with random values.
 run.py [-h] [-n N] [--synth {functional,timing}] [--gui] filepath
 ```
 
-| Positional arguments | description |
+| Positional arguments | Description |
 | ------ | ------ |
 | filepath | VHD project file path to perform simulation with [ex. vhd/filename.vhd]. |
 
-| Optional arguments | description |
+| Optional arguments | Description |
 | ------ | ------ |
 | -h, --help | Show usage message and exit. |
 | -n N | Number of simulations [default = 1]. |
