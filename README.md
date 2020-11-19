@@ -1,4 +1,4 @@
-# Digital Logic Design Project
+# VHDL Simulator
 
 Run behavioural, post-synthesis functional or post-synthesis timing simulation
 on a template testbench populated with random values.
